@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MusicFlow - 音乐律动沉浸式体验</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+  <link rel="stylesheet" href="/src/styles/lyrics-effects.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="three-canvas"></canvas>
+
+    <!-- 开场动画 -->
+    <div id="intro-overlay">
+      <div id="intro-ring"></div>
+    </div>
+
+    <!-- 歌词层 -->
+    <div id="lyrics-container">
+      <div id="lyrics-glow"></div>
+      <div id="lyrics-display">
+        <div id="lyrics-prev" class="lyrics-line prev"></div>
+        <div id="lyrics-current" class="lyrics-line current">
+          <span class="char-container"></span>
+        </div>
+        <div id="lyrics-next" class="lyrics-line next"></div>
+        <div id="lyrics-next2" class="lyrics-line next2"></div>
+      </div>
+    </div>
+
+    <div id="control-panel">
+      <h1>MUSICFLOW</h1>
+
+      <div class="control-section">
+        <label class="file-label">
+          <span>+ 选择音频文件</span>
+          <input type="file" id="audio-input" accept="audio/*,video/*">
+        </label>
+        <div id="audio-name" class="file-name">未选择文件</div>
+      </div>
+
+      <div class="control-section">
+        <label class="file-label">
+          <span>+ 选择歌词文件 (LRC)</span>
+          <input type="file" id="lyrics-input" accept=".lrc,.txt">
+        </label>
+        <div id="lyrics-name" class="file-name">未选择歌词</div>
+      </div>
+
+      <div class="control-section">
+        <button id="analyze-btn" class="btn btn-primary" disabled>AI 分析音乐</button>
+        <div id="analysis-result" class="analysis-result"></div>
+      </div>
+
+      <div class="control-section">
+        <div id="progress-container">
+          <span id="current-time">0:00</span>
+          <input type="range" id="progress-bar" min="0" max="100" value="0">
+          <span id="duration">0:00</span>
+        </div>
+        <div class="playback-controls">
+          <button id="play-btn" class="btn btn-play" disabled>播放</button>
+          <button id="stop-btn" class="btn btn-stop" disabled>停止</button>
+        </div>
+      </div>
+
+      <div class="control-section">
+        <button id="export-btn" class="btn btn-export" disabled>导出视频</button>
+        <div id="export-status" class="export-status"></div>
+      </div>
+
+      <div class="control-section">
+        <details>
+          <summary>视觉设置</summary>
+          <div class="settings-content">
+            <!-- API设置 -->
+            <label>
+              API Key (阿里云):
+              <input type="password" id="api-key-input" placeholder="sk-...">
+            </label>
+            <label>
+              选择模型:
+              <select id="model-select">
+                <option value="qwen-turbo">Qwen Turbo (快速)</option>
+                <option value="qwen-plus">Qwen Plus (标准)</option>
+                <option value="qwen-max">Qwen Max (最强)</option>
+              </select>
+            </label>
+            
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:12px 0;">
+            
+            <!-- 背景风格选择 -->
+            <label style="font-weight:500;color:#ccc;">背景效果</label>
+            <div class="effect-options">
+              <button class="effect-btn active" data-style="aurora">极光</button>
+              <button class="effect-btn" data-style="stars">星空</button>
+              <button class="effect-btn" data-style="rain">雨滴</button>
+              <button class="effect-btn" data-style="neon">霓虹</button>
+              <button class="effect-btn" data-style="minimal">简约</button>
+            </div>
+            
+            <!-- 颜色预设 -->
+            <label style="font-weight:500;color:#ccc;margin-top:12px;">颜色主题</label>
+            <div class="color-presets" id="color-presets">
+              <div class="color-preset active" data-colors="#667eea,#764ba2,#f093fb" style="background:linear-gradient(135deg,#667eea,#764ba2)"></div>
+              <div class="color-preset" data-colors="#ff6b6b,#feca57,#ff9f43" style="background:linear-gradient(135deg,#ff6b6b,#feca57)"></div>
+              <div class="color-preset" data-colors="#ff9ff3,#f8a5c2,#ff6b81" style="background:linear-gradient(135deg,#ff9ff3,#ff6b81)"></div>
+              <div class="color-preset" data-colors="#5f27cd,#341f97,#48dbfb" style="background:linear-gradient(135deg,#5f27cd,#48dbfb)"></div>
+              <div class="color-preset" data-colors="#00d4ff,#00ff80,#00ffff" style="background:linear-gradient(135deg,#00d4ff,#00ff80)"></div>
+              <div class="color-preset" data-colors="#ffd700,#ff6b6b,#ff4500" style="background:linear-gradient(135deg,#ffd700,#ff6b6b)"></div>
+              <div class="color-preset" data-colors="#a29bfe,#74b9ff,#fd79a8" style="background:linear-gradient(135deg,#a29bfe,#fd79a8)"></div>
+              <div class="color-preset" data-colors="#2d3436,#636e72,#b2bec3" style="background:linear-gradient(135deg,#2d3436,#b2bec3)"></div>
+            </div>
+            
+            <!-- 效果强度 -->
+            <label style="margin-top:12px;">
+              效果强度:
+              <input type="range" id="particle-count" min="30" max="200" value="100">
+            </label>
+            
+            <!-- 歌词切换速度 -->
+            <label style="margin-top:8px;">
+              歌词切换速度:
+              <input type="range" id="lyrics-speed" min="1" max="10" value="6">
+            </label>
+            
+            <!-- 歌词样式 -->
+            <label style="font-weight:500;color:#ccc;margin-top:12px;">歌词特效</label>
+            <div class="effect-options">
+              <button class="effect-btn active" data-lyrics="gradient">渐变</button>
+              <button class="effect-btn" data-lyrics="glow">发光</button>
+              <button class="effect-btn" data-lyrics="particle">粒子</button>
+              <button class="effect-btn" data-lyrics="minimal">简约</button>
+            </div>
+            
+            <!-- 歌词跟随模式 -->
+            <label style="font-weight:500;color:#ccc;margin-top:12px;">跟随模式</label>
+            <div class="effect-options">
+              <button class="effect-btn active" data-mode="karaoke">跳动</button>
+              <button class="effect-btn" data-mode="normal">渐变</button>
+              <button class="effect-btn" data-mode="progress">进度条</button>
+              <button class="effect-btn" data-mode="none">无效果</button>
+            </div>
+            
+            <!-- 字体选择 -->
+            <label style="font-weight:500;color:#ccc;margin-top:12px;">字体</label>
+            <div class="effect-options">
+              <button class="effect-btn active" data-font="yaihei">雅黑</button>
+              <button class="effect-btn" data-font="heiti">黑体</button>
+              <button class="effect-btn" data-font="songti">宋体</button>
+              <button class="effect-btn" data-font="fangsong">仿宋</button>
+            </div>
+            
+            <!-- 歌词切换动画 -->
+            <label style="font-weight:500;color:#ccc;margin-top:12px;">切换动画</label>
+            <div class="effect-options">
+              <button class="effect-btn active" data-transition="fade">淡入</button>
+              <button class="effect-btn" data-transition="scale">缩放</button>
+              <button class="effect-btn" data-transition="blur">虚化</button>
+              <button class="effect-btn" data-transition="karaoke">卡拉OK</button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <audio id="audio-player"></audio>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+/* ===== 歌词跟随效果 ===== */
+
+/* 模式1: 卡拉OK逐字跳动 */
+.lyrics-mode-karaoke .char {
+  transition: all 0.1s ease;
+}
+.lyrics-mode-karaoke .char.highlighted {
+  animation: char-pop 0.2s ease forwards;
+}
+@keyframes char-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1.05); }
+}
+
+/* 模式2: 普通渐变 - 整句颜色渐变 */
+.lyrics-mode-normal .char {
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.lyrics-mode-normal .char.highlighted {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+  animation: none;
+  transform: none;
+}
+
+/* 模式3: 进度条模式 */
+.lyrics-mode-progress .char-container {
+  position: relative;
+  display: inline-block;
+}
+.lyrics-mode-progress .char {
+  transition: color 0.05s linear, text-shadow 0.05s linear;
+}
+.lyrics-mode-progress .char.highlighted {
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
+  animation: none;
+  transform: none;
+}
+/* 进度条底线 */
+.lyrics-mode-progress .char-container::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
+  width: 0;
+  animation: progress-line 1s linear forwards;
+}
+@keyframes progress-line {
+  to { width: 100%; }
+}
+
+/* 模式4: 无效果 - 直接整句高亮 */
+.lyrics-mode-none .char {
+  transition: none;
+}
+.lyrics-mode-none .char.highlighted {
+  color: rgba(255, 255, 255, 0.85);
+  animation: none;
+  transform: none;
+}
+
+/* ===== 歌词特效 ===== */
+.char-container {
+  display: inline;
+  position: relative;
+}
+
+.char {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 渐变特效 */
+.char.style-gradient.highlighted {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+}
+
+/* 发光特效 */
+.char.style-glow.highlighted {
+  color: #ffffff;
+  text-shadow: 
+    0 0 4px #fff,
+    0 0 8px #fff,
+    0 0 16px rgba(255, 255, 255, 0.6);
+}
+
+/* 粒子特效 */
+.char.style-particle.highlighted {
+  background: linear-gradient(90deg, #fff, #a0d8ff, #fff);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shine-sweep 1.5s ease infinite;
+  filter: drop-shadow(0 0 6px rgba(160, 216, 255, 0.6));
+}
+
+@keyframes shine-sweep {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 简约特效 */
+.char.style-minimal.highlighted {
+  color: rgba(255, 255, 255, 0.9);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.9);
+}
+
+/* 高潮时刻特效 */
+.lyrics-line.current.climax .char.highlighted {
+  background: linear-gradient(90deg, #ffd700, #ffaa00, #fff, #ffaa00, #ffd700);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: climax-shine 0.8s linear infinite;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+}
+
+@keyframes climax-shine {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
