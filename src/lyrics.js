@@ -121,8 +121,18 @@ class LyricsManager {
   // 设置字体
   setFontFamily(font) {
     this.fontFamily = font;
-    this.displayEl.classList.remove('font-yaihei', 'font-heiti', 'font-noto', 'font-zcool', 'font-hans', 'font-brutal');
-    this.displayEl.classList.add(`font-${font}`);
+    const fontClasses = ['font-yaihei', 'font-heiti', 'font-noto', 'font-zcool', 'font-hans', 'font-brutal'];
+    const newClass = `font-${font}`;
+    
+    // 移除所有字体类并添加新的
+    fontClasses.forEach(c => this.displayEl.classList.remove(c));
+    this.displayEl.classList.add(newClass);
+    
+    // 同时更新歌词行元素
+    this.prevEl.className = `lyrics-line prev ${newClass}`;
+    this.currentEl.className = `lyrics-line current ${newClass}`;
+    this.nextEl.className = `lyrics-line next ${newClass}`;
+    this.next2El.className = `lyrics-line next2 ${newClass}`;
   }
 
   showLyric(index) {

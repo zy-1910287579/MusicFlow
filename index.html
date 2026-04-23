@@ -16,6 +16,15 @@
       <div id="intro-ring"></div>
     </div>
 
+    <!-- AI总结显示 - 右上角若隐若现 -->
+    <div id="ai-summary-display"></div>
+    
+    <!-- 歌曲信息显示 -->
+    <div id="song-info">
+      <div id="song-title"></div>
+      <div id="song-artist"></div>
+    </div>
+    
     <!-- 歌词层 -->
     <div id="lyrics-container">
       <div id="lyrics-glow"></div>
@@ -66,11 +75,6 @@
       </div>
 
       <div class="control-section">
-        <button id="export-btn" class="btn btn-export" disabled>导出视频</button>
-        <div id="export-status" class="export-status"></div>
-      </div>
-
-      <div class="control-section">
         <details>
           <summary>视觉设置</summary>
           <div class="settings-content">
@@ -96,8 +100,16 @@
               <button class="effect-btn active" data-style="aurora">极光</button>
               <button class="effect-btn" data-style="stars">星空</button>
               <button class="effect-btn" data-style="rain">雨滴</button>
-              <button class="effect-btn" data-style="neon">霓虹</button>
+              <button class="effect-btn" data-style="snow">飘雪</button>
               <button class="effect-btn" data-style="minimal">简约</button>
+            </div>
+            
+            <!-- 背景网格开关 -->
+            <div class="effect-options" style="margin-top:8px;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="bg-grid-toggle" checked style="width:16px;height:16px;cursor:pointer;">
+                <span style="font-weight:normal;color:#ccc;">背景光晕</span>
+              </label>
             </div>
             
             <!-- 颜色预设 -->
@@ -139,7 +151,6 @@
             <div class="effect-options">
               <button class="effect-btn active" data-mode="karaoke">跳动</button>
               <button class="effect-btn" data-mode="normal">渐变</button>
-              <button class="effect-btn" data-mode="progress">进度条</button>
               <button class="effect-btn" data-mode="none">无效果</button>
             </div>
             

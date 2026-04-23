@@ -1,7 +1,6 @@
 import SceneManager from './scene.js';
 import LyricsManager from './lyrics.js';
 import LLMAnalyzer from './analyzer.js';
-import VideoExporter from './exporter.js';
 
 // DOM 元素
 const audioInput = document.getElementById('audio-input');
@@ -10,24 +9,23 @@ const audioPlayer = document.getElementById('audio-player');
 const playBtn = document.getElementById('play-btn');
 const stopBtn = document.getElementById('stop-btn');
 const analyzeBtn = document.getElementById('analyze-btn');
-const exportBtn = document.getElementById('export-btn');
 const progressBar = document.getElementById('progress-bar');
 const currentTimeEl = document.getElementById('current-time');
 const durationEl = document.getElementById('duration');
 const audioNameEl = document.getElementById('audio-name');
 const lyricsNameEl = document.getElementById('lyrics-name');
 const analysisResultEl = document.getElementById('analysis-result');
-const exportStatusEl = document.getElementById('export-status');
 const apiKeyInput = document.getElementById('api-key-input');
 const modelSelect = document.getElementById('model-select');
 const particleCountInput = document.getElementById('particle-count');
 const introOverlay = document.getElementById('intro-overlay');
+const songTitleEl = document.getElementById('song-title');
+const songArtistEl = document.getElementById('song-artist');
 
 // 初始化管理器
 const sceneManager = new SceneManager();
 const lyricsManager = new LyricsManager();
 const llmAnalyzer = new LLMAnalyzer();
-const videoExporter = new VideoExporter(sceneManager);
 
 // 音频分析器
 let audioContext, analyser, dataArray;
@@ -40,7 +38,6 @@ function init() {
   setupEventListeners();
   loadSavedSettings();
   setupAudioAnalyser();
-  setupExporter();
 }
 
 // 设置音频分析器
@@ -179,6 +176,22 @@ function setupEventListeners() {
     });
   });
   
+  // 背景网格开关
+  const bgGridToggle = document.getElementById('bg-grid-toggle');
+  if (bgGridToggle) {
+    // 加载保存的设置
+    const savedBgGrid = localStorage.getItem('bg_grid_visible');
+    if (savedBgGrid !== null) {
+      bgGridToggle.checked = savedBgGrid === 'true';
+      sceneManager.toggleBackgroundMesh(bgGridToggle.checked);
+    }
+    
+    bgGridToggle.addEventListener('change', () => {
+      sceneManager.toggleBackgroundMesh(bgGridToggle.checked);
+      localStorage.setItem('bg_grid_visible', bgGridToggle.checked);
+    });
+  }
+  
   // 颜色预设选择
   document.querySelectorAll('.color-preset').forEach(preset => {
     preset.addEventListener('click', () => {
@@ -266,13 +279,29 @@ function handleAudioSelect(e) {
     audioPlayer.src = url;
     audioNameEl.textContent = file.name;
     
+    // 解析文件名显示歌曲信息
+    parseSongInfo(file.name);
+    
     analyzeBtn.disabled = false;
     playBtn.disabled = false;
     stopBtn.disabled = false;
-    
-    audioPlayer.addEventListener('canplay', () => {
-      exportBtn.disabled = false;
-    }, { once: true });
+  }
+}
+
+// 解析文件名获取歌曲和作者信息
+function parseSongInfo(filename) {
+  // 移除文件扩展名
+  let name = filename.replace(/\.(mp3|wav|flac|ogg|m4a|aac|ape|alac)$/i, '');
+  
+  // 尝试匹配 "作者 - 歌曲名" 或 "歌曲名 - 作者" 格式
+  const dashMatch = name.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+  if (dashMatch) {
+    songArtistEl.textContent = dashMatch[1].trim();
+    songTitleEl.textContent = dashMatch[2].trim();
+  } else {
+    // 无法解析时显示文件名
+    songArtistEl.textContent = '';
+    songTitleEl.textContent = name;
   }
 }
 
@@ -426,6 +455,15 @@ async function analyzeMusic() {
       lyricsManager.setClimaxPoints(result.climaxPoints);
     }
     
+    // 更新右上角 AI 总结（若隐若现显示）
+    const aiSummaryDisplay = document.getElementById('ai-summary-display');
+    if (aiSummaryDisplay) {
+      aiSummaryDisplay.innerHTML = `
+        <div class="ai-style">✦ ${result.style || '默认风格'}</div>
+        <div class="ai-desc">${result.description || result.mood || ''}</div>
+      `;
+    }
+    
     sceneManager.updateAurora();
     
   } catch (error) {
@@ -434,40 +472,6 @@ async function analyzeMusic() {
     analyzeBtn.disabled = false;
     analyzeBtn.textContent = 'AI 分析音乐';
   }
-}
-
-// 设置视频导出
-function setupExporter() {
-  videoExporter.setStatusCallback((message) => {
-    exportStatusEl.textContent = message;
-  });
-  
-  exportBtn.addEventListener('click', async () => {
-    if (videoExporter.isCurrentlyRecording()) {
-      videoExporter.stopRecording();
-      exportBtn.textContent = '导出视频';
-      exportBtn.disabled = false;
-    } else {
-      try {
-        exportBtn.disabled = true;
-        exportBtn.textContent = '录制中...';
-        await videoExporter.startRecording(audioPlayer);
-      } catch (error) {
-        exportStatusEl.textContent = '录制失败: ' + error.message;
-        exportBtn.textContent = '导出视频';
-        exportBtn.disabled = false;
-      }
-    }
-  });
-  
-  // 监听音频播放结束
-  audioPlayer.addEventListener('ended', () => {
-    if (videoExporter.isCurrentlyRecording()) {
-      videoExporter.stopRecording();
-      exportBtn.textContent = '导出视频';
-      exportBtn.disabled = false;
-    }
-  });
 }
 
 // 启动

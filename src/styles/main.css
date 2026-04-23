@@ -78,7 +78,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 /* ===== 歌词背景光效 - 改为极弱 ===== */
@@ -623,4 +623,61 @@ details summary {
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, #667eea, #764ba2);
   border-radius: 2px;
+}
+
+/* ===== AI总结显示 - 右上角若隐若现 ===== */
+#ai-summary-display {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 25;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: right;
+  pointer-events: none !important;
+  animation: ai-ghost-pulse 4s ease-in-out infinite;
+  text-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+#ai-summary-display .ai-style {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.25);
+  margin-bottom: 4px;
+  letter-spacing: 0.1em;
+}
+
+#ai-summary-display .ai-desc {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes ai-ghost-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.45; }
+}
+
+/* ===== 歌曲信息显示 - 顶部中央 ===== */
+#song-info {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 25;
+  pointer-events: none !important;
+}
+
+#song-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+  margin-bottom: 4px;
+}
+
+#song-artist {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
 }

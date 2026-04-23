@@ -12,29 +12,25 @@ class SceneManager {
     this.currentBackgroundStyle = 'aurora';
     this.backgroundElements = {};
     
-    // 极光流光
-    this.lightStreamers = [];
-    this.lightStreamerCount = 50;
+    // 光斑
     this.lightBlobs = [];
-    this.lightBlobCount = 8;
-    this.centerGlow = null;
-    this.outerRing = null;
+    this.lightBlobCount = 20;
     this.aurora = null;
     
     // 雨滴
     this.rainDrops = [];
-    this.rainCount = 300;
+    this.rainCount = 5000;
     
     // 星星
     this.stars = null;
-    this.starCount = 400;
+    this.starCount = 1000;
     
-    // 霓虹元素
-    this.neonLines = [];
-    this.neonCount = 12;
+    // 雪花
+    this.snow = null;
+    this.snowCount = 1000;
     
     // 漂浮粒子
-    this.particles = null;
+    this.particles = 1000;
     
     this.currentStyle = 'normal';
     this.intensity = 1;
@@ -74,13 +70,11 @@ class SceneManager {
     // 创建所有背景元素
     this.createBackground();
     this.createAurora();
-    this.createLightStreamers();
     this.createLightBlobs();
-    this.createCenterGlow();
     this.createFloatingParticles();
     this.createRain();
     this.createStars();
-    this.createNeonLines();
+    this.createSnow();
     
     // 默认显示极光
     this.setBackgroundStyle('aurora');
@@ -91,7 +85,7 @@ class SceneManager {
 
   // 创建渐变背景
   createBackground() {
-    const geometry = new THREE.PlaneGeometry(200, 120);
+    const geometry = new THREE.PlaneGeometry(500, 300);
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
@@ -122,10 +116,6 @@ class SceneManager {
           vec3 color = mix(uColor1, uColor2, smoothstep(0.0, 0.5, t));
           color = mix(color, uColor3, smoothstep(0.5, 1.0, t));
           
-          float glow = exp(-pow((uv.x - 0.5) * 3.0, 2.0)) * 0.2;
-          glow += exp(-pow((uv.y - 0.3) * 4.0, 2.0)) * 0.15;
-          color += vec3(0.3, 0.2, 0.5) * glow * sin(uTime * 0.5);
-          
           gl_FragColor = vec4(color, 1.0);
         }
       `,
@@ -137,9 +127,16 @@ class SceneManager {
     this.scene.add(this.backgroundMesh);
   }
 
+  // 切换背景网格显示
+  toggleBackgroundMesh(visible) {
+    if (this.backgroundMesh) {
+      this.backgroundMesh.visible = visible;
+    }
+  }
+
   // 创建极光效果
   createAurora() {
-    const geometry = new THREE.PlaneGeometry(120, 40, 64, 32);
+    const geometry = new THREE.PlaneGeometry(600, 40, 32, 128);
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
@@ -182,7 +179,6 @@ class SceneManager {
           color = mix(color, uColor3, sin(t * 2.0 + uTime * 0.5) * 0.3 + 0.3);
           
           float alpha = (1.0 - pow(vY, 2.0)) * 0.5 * uIntensity;
-          alpha *= 0.8 + sin(uTime * 0.8) * 0.2;
           
           gl_FragColor = vec4(color, alpha);
         }
@@ -194,77 +190,10 @@ class SceneManager {
     });
 
     this.aurora = new THREE.Mesh(geometry, material);
-    this.aurora.position.y = 5;
+    this.aurora.position.y = 0;
     this.aurora.position.z = -20;
     this.aurora.visible = true;
     this.scene.add(this.aurora);
-  }
-
-  // 创建流光效果
-  createLightStreamers() {
-    this.lightStreamers.forEach(s => {
-      this.scene.remove(s);
-      s.geometry.dispose();
-      s.material.dispose();
-    });
-    this.lightStreamers = [];
-
-    for (let i = 0; i < this.lightStreamerCount; i++) {
-      const length = 5 + Math.random() * 15;
-      const geometry = new THREE.PlaneGeometry(0.4, length, 1, 8);
-      const material = new THREE.ShaderMaterial({
-        uniforms: {
-          uTime: { value: Math.random() * 100 },
-          uColor: { value: this.params.colors[i % 3] },
-          uSpeed: { value: 0.3 + Math.random() * 0.3 },
-          uLength: { value: length }
-        },
-        vertexShader: `
-          uniform float uTime;
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            vec3 pos = position;
-            pos.y += sin(pos.y * 0.5 + uTime) * 2.0;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform vec3 uColor;
-          uniform float uTime;
-          varying vec2 vUv;
-          void main() {
-            float alpha = (1.0 - vUv.y) * 0.6;
-            alpha *= smoothstep(0.0, 0.2, vUv.x) * smoothstep(1.0, 0.8, vUv.x);
-            alpha *= 0.5 + sin(vUv.y * 10.0 + uTime * 3.0) * 0.3;
-            gl_FragColor = vec4(uColor, alpha);
-          }
-        `,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide
-      });
-
-      const streamer = new THREE.Mesh(geometry, material);
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 15 + Math.random() * 25;
-      streamer.position.set(
-        Math.cos(angle) * radius,
-        (Math.random() - 0.5) * 30,
-        Math.sin(angle) * radius - 20
-      );
-      streamer.rotation.z = angle + Math.PI / 2;
-      streamer.userData = {
-        baseAngle: angle,
-        baseRadius: radius,
-        speedOffset: Math.random() * Math.PI * 2,
-        verticalSpeed: Math.random() * 0.5
-      };
-
-      this.lightStreamers.push(streamer);
-      this.scene.add(streamer);
-    }
   }
 
   // 创建光斑效果
@@ -277,7 +206,7 @@ class SceneManager {
     this.lightBlobs = [];
 
     for (let i = 0; i < this.lightBlobCount; i++) {
-      const size = 3 + Math.random() * 8;
+      const size = 8 + Math.random() * 15;
       const geometry = new THREE.CircleGeometry(size, 32);
       const material = new THREE.ShaderMaterial({
         uniforms: {
@@ -300,7 +229,6 @@ class SceneManager {
           void main() {
             float dist = distance(vUv, vec2(0.5));
             float alpha = uAlpha * (1.0 - smoothstep(0.0, 0.5, dist));
-            alpha *= 0.7 + sin(uTime * 0.5) * 0.3;
             gl_FragColor = vec4(uColor, alpha);
           }
         `,
@@ -326,73 +254,6 @@ class SceneManager {
     }
   }
 
-  // 创建中心光晕
-  createCenterGlow() {
-    const innerGeometry = new THREE.CircleGeometry(12, 64);
-    const innerMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uColor: { value: this.params.colors[0] }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 uColor;
-        uniform float uTime;
-        varying vec2 vUv;
-        void main() {
-          float dist = distance(vUv, vec2(0.5));
-          float alpha = (1.0 - smoothstep(0.0, 0.5, dist)) * 0.5;
-          alpha *= 0.8 + sin(uTime * 2.0) * 0.2;
-          gl_FragColor = vec4(uColor, alpha);
-        }
-      `,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-
-    this.centerGlow = new THREE.Mesh(innerGeometry, innerMaterial);
-    this.centerGlow.position.z = -5;
-    this.scene.add(this.centerGlow);
-
-    const ringGeometry = new THREE.RingGeometry(8, 30, 64);
-    const ringMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uColor: { value: this.params.colors[1] }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 uColor;
-        uniform float uTime;
-        varying vec2 vUv;
-        void main() {
-          float alpha = (1.0 - abs(vUv.y - 0.5) * 2.0) * 0.3;
-          alpha *= 0.6 + sin(vUv.x * 20.0 + uTime * 2.0) * 0.4;
-          gl_FragColor = vec4(uColor, alpha);
-        }
-      `,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-
-    this.outerRing = new THREE.Mesh(ringGeometry, ringMaterial);
-    this.outerRing.position.z = -6;
-    this.scene.add(this.outerRing);
-  }
 
   // 创建漂浮粒子
   createFloatingParticles() {
@@ -406,7 +267,7 @@ class SceneManager {
       positions[i * 3] = (Math.random() - 0.5) * 100;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 60;
       positions[i * 3 + 2] = -10 - Math.random() * 40;
-      sizes[i] = Math.random() * 2 + 0.5;
+      sizes[i] = Math.random() * 4 + 1.5;
       randoms[i] = Math.random();
     }
 
@@ -466,8 +327,8 @@ class SceneManager {
     const randoms = new Float32Array(this.rainCount);
 
     for (let i = 0; i < this.rainCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 100;
-      positions[i * 3 + 1] = Math.random() * 60 - 30;
+      positions[i * 3] = (Math.random() - 0.5) * 500;
+      positions[i * 3 + 1] = Math.random() * 300 - 150;
       positions[i * 3 + 2] = -10 - Math.random() * 30;
       randoms[i] = Math.random();
     }
@@ -528,8 +389,8 @@ class SceneManager {
     const randoms = new Float32Array(this.starCount);
 
     for (let i = 0; i < this.starCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 120;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 80;
+      positions[i * 3] = (Math.random() - 0.5) * 500;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 300;
       positions[i * 3 + 2] = -30 - Math.random() * 40;
       sizes[i] = Math.random() * 3 + 1;
       randoms[i] = Math.random();
@@ -557,9 +418,8 @@ class SceneManager {
           gl_PointSize = size * (150.0 / -mvPosition.z);
           gl_Position = projectionMatrix * mvPosition;
           
-          // 闪烁效果
-          vAlpha = 0.4 + sin(uTime * (1.0 + random * 2.0) + random * 6.28) * 0.4;
-          vAlpha *= 0.6 + random * 0.4;
+          // 固定柔和透明度
+          vAlpha = 0.3 + random * 0.3;
         }
       `,
       fragmentShader: `
@@ -582,55 +442,68 @@ class SceneManager {
     this.scene.add(this.stars);
   }
 
-  // 创建霓虹线条
-  createNeonLines() {
-    this.neonLines.forEach(l => {
-      this.scene.remove(l);
-      l.geometry.dispose();
-      l.material.dispose();
-    });
-    this.neonLines = [];
+  // 创建飘雪效果
+  createSnow() {
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(this.snowCount * 3);
+    const randoms = new Float32Array(this.snowCount);
+    const sizes = new Float32Array(this.snowCount);
 
-    const colors = [
-      new THREE.Color(0xff00ff),
-      new THREE.Color(0x00ffff),
-      new THREE.Color(0xff0080),
-      new THREE.Color(0x00ff80)
-    ];
-
-    for (let i = 0; i < this.neonCount; i++) {
-      const points = [];
-      const segments = 20;
-      const startX = (Math.random() - 0.5) * 80;
-      const startY = (Math.random() - 0.5) * 40;
-      
-      for (let j = 0; j <= segments; j++) {
-        const t = j / segments;
-        points.push(new THREE.Vector3(
-          startX + Math.sin(t * Math.PI * 2 + i) * 10,
-          startY + t * 40 - 20 + Math.cos(t * Math.PI * 3) * 5,
-          -15 - Math.random() * 20
-        ));
-      }
-
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      const material = new THREE.LineBasicMaterial({
-        color: colors[i % colors.length],
-        transparent: true,
-        opacity: 0.4,
-        blending: THREE.AdditiveBlending
-      });
-
-      const line = new THREE.Line(geometry, material);
-      line.userData = {
-        offset: Math.random() * Math.PI * 2,
-        speed: 0.5 + Math.random() * 0.5
-      };
-      line.visible = false;
-
-      this.neonLines.push(line);
-      this.scene.add(line);
+    for (let i = 0; i < this.snowCount; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 500;
+      positions[i * 3 + 1] = Math.random() * 300 - 150;
+      positions[i * 3 + 2] = -10 - Math.random() * 30;
+      randoms[i] = Math.random();
+      sizes[i] = 6 + Math.random() * 8;
     }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('random', new THREE.BufferAttribute(randoms, 1));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color(0xffffff) }
+      },
+      vertexShader: `
+        attribute float random;
+        attribute float size;
+        uniform float uTime;
+        varying float vAlpha;
+        
+        void main() {
+          vec3 pos = position;
+          // 缓慢下落，带轻微左右摆动
+          float fallSpeed = 8.0 + random * 8.0;
+          pos.y -= mod(uTime * fallSpeed + random * 300.0, 400.0) - 200.0;
+          pos.x += sin(uTime * 0.5 + random * 6.28) * 2.0;
+          
+          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+          gl_PointSize = size * (150.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+          
+          vAlpha = 0.5 + random * 0.3;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        varying float vAlpha;
+        
+        void main() {
+          float dist = distance(gl_PointCoord, vec2(0.5));
+          float alpha = (1.0 - smoothstep(0.0, 0.5, dist)) * vAlpha;
+          gl_FragColor = vec4(uColor, alpha);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    this.snow = new THREE.Points(geometry, material);
+    this.snow.visible = false;
+    this.scene.add(this.snow);
   }
 
   // 设置背景风格
@@ -641,49 +514,39 @@ class SceneManager {
     if (this.aurora) this.aurora.visible = false;
     if (this.rain) this.rain.visible = false;
     if (this.stars) this.stars.visible = false;
-    this.neonLines.forEach(l => l.visible = false);
-    this.lightStreamers.forEach(s => s.visible = false);
+    if (this.snow) this.snow.visible = false;
     this.lightBlobs.forEach(b => b.visible = false);
-    if (this.centerGlow) this.centerGlow.visible = false;
-    if (this.outerRing) this.outerRing.visible = false;
 
     // 根据风格显示元素
     switch (style) {
       case 'aurora':
-        // 极光风格：显示极光 + 流光 + 中心光晕
+        // 极光风格：显示极光 + 光斑
         if (this.aurora) this.aurora.visible = true;
-        this.lightStreamers.forEach(s => s.visible = true);
         this.lightBlobs.forEach(b => b.visible = true);
-        if (this.centerGlow) this.centerGlow.visible = true;
-        if (this.outerRing) this.outerRing.visible = true;
         break;
         
       case 'rain':
         // 雨滴风格
         if (this.rain) this.rain.visible = true;
         if (this.stars) this.stars.visible = true;
-        if (this.centerGlow) this.centerGlow.visible = true;
+        this.lightBlobs.forEach(b => b.visible = true);
         break;
         
       case 'stars':
         // 星空风格
         if (this.stars) this.stars.visible = true;
         this.lightBlobs.forEach(b => b.visible = true);
-        if (this.centerGlow) this.centerGlow.visible = true;
-        if (this.outerRing) this.outerRing.visible = true;
         break;
         
-      case 'neon':
-        // 霓虹风格
-        this.neonLines.forEach(l => l.visible = true);
-        this.lightStreamers.forEach(s => s.visible = true);
-        if (this.centerGlow) this.centerGlow.visible = true;
+      case 'snow':
+        // 飘雪风格
+        if (this.snow) this.snow.visible = true;
+        this.lightBlobs.forEach(b => b.visible = true);
         break;
         
       case 'minimal':
-        // 简约风格：只保留中心光晕
-        if (this.centerGlow) this.centerGlow.visible = true;
-        if (this.outerRing) this.outerRing.visible = true;
+        // 简约风格：只保留微弱光斑
+        this.lightBlobs.forEach(b => b.visible = true);
         break;
     }
   }
@@ -734,20 +597,9 @@ class SceneManager {
       this.particles.material.uniforms.uColor.value = this.params.colors[0];
     }
     
-    this.lightStreamers.forEach((s, i) => {
-      s.material.uniforms.uColor.value = this.params.colors[i % 3];
-    });
-    
     this.lightBlobs.forEach((b, i) => {
       b.material.uniforms.uColor.value = this.params.colors[i % 3];
     });
-    
-    if (this.centerGlow) {
-      this.centerGlow.material.uniforms.uColor.value = this.params.colors[0];
-    }
-    if (this.outerRing) {
-      this.outerRing.material.uniforms.uColor.value = this.params.colors[1] || this.params.colors[0];
-    }
   }
 
   updateAurora() {
@@ -771,10 +623,6 @@ class SceneManager {
       this.aurora.material.uniforms.uColor1.value = this.params.climaxColors[0];
       this.aurora.material.uniforms.uColor2.value = this.params.climaxColors[1];
       this.aurora.material.uniforms.uIntensity.value = this.params.climaxIntensity || 1.5;
-    }
-    
-    if (this.centerGlow) {
-      this.centerGlow.material.uniforms.uColor.value = this.params.climaxColors[0];
     }
   }
 
@@ -813,23 +661,6 @@ class SceneManager {
       this.aurora.material.uniforms.uIntensity.value = this.intensity;
     }
 
-    // 更新流光
-    this.lightStreamers.forEach((s, i) => {
-      if (!s.visible) return;
-      s.material.uniforms.uTime.value = this.time + s.userData.speedOffset;
-      
-      const data = s.userData;
-      const angle = data.baseAngle + this.time * 0.05 * this.params.speed;
-      const radius = data.baseRadius + Math.sin(this.time * data.verticalSpeed + data.speedOffset) * 5;
-      
-      s.position.x = Math.cos(angle) * radius;
-      s.position.z = Math.sin(angle) * radius - 20;
-      s.position.y += Math.sin(this.time * data.verticalSpeed + data.speedOffset) * 0.1;
-      
-      const scale = 1 + this.audioLevel * 0.3;
-      s.scale.y = scale;
-    });
-
     // 更新光斑
     this.lightBlobs.forEach((b, i) => {
       if (!b.visible) return;
@@ -841,20 +672,6 @@ class SceneManager {
       const scale = 1 + this.audioLevel * 0.5;
       b.scale.set(scale, scale, 1);
     });
-
-    // 更新中心光晕
-    if (this.centerGlow && this.centerGlow.visible) {
-      this.centerGlow.material.uniforms.uTime.value = this.time;
-      const scale = 1 + Math.sin(this.time * 2) * 0.1 + this.audioLevel * 0.4;
-      this.centerGlow.scale.set(scale, scale, 1);
-    }
-    
-    if (this.outerRing && this.outerRing.visible) {
-      this.outerRing.material.uniforms.uTime.value = this.time;
-      const scale = 1 + Math.sin(this.time * 1.5 + 1) * 0.15 + this.audioLevel * 0.5;
-      this.outerRing.scale.set(scale, scale, 1);
-      this.outerRing.rotation.z += 0.001 * this.params.speed;
-    }
 
     // 更新雨滴
     if (this.rain && this.rain.visible) {
@@ -868,11 +685,10 @@ class SceneManager {
       this.stars.rotation.y += 0.0001 * this.params.speed;
     }
 
-    // 更新霓虹线条
-    this.neonLines.forEach((l, i) => {
-      if (!l.visible) return;
-      l.material.opacity = 0.3 + Math.sin(this.time * l.userData.speed + l.userData.offset) * 0.2;
-    });
+    // 更新飘雪
+    if (this.snow && this.snow.visible) {
+      this.snow.material.uniforms.uTime.value = this.time;
+    }
 
     // 更新漂浮粒子
     if (this.particles) {
